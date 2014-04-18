@@ -8,8 +8,8 @@ import de.krumpefp.gameoflife.World;
 
 public class GUI {
 	
-	private static final int speed = 2;
-	private static final int refresh = 1;
+	private static final int speed = 10;
+	private static final int refresh = 5;
 	private static final int cellSize = 10;
 
 	public static void main(String[] args) {

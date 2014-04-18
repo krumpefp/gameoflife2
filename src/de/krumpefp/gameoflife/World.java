@@ -4,17 +4,18 @@ import java.awt.Color;
 import java.awt.Frame;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.util.ArrayList;
 import java.util.Random;
 
 public class World extends Frame {
 
 	// ---- class constants ----
-	private final int xSpread = 3;
-	private final int ySpread = 3;
-	private final int seedFactor = 5;
-	private final int habitantStart = 200;
-	private final int habitantProbability = 1000;
+	private static final int xSpread = 3;
+	private static final int ySpread = 3;
+	private static final int seedFactor = 5;
+	private static final int habitantStart = 150;
+	private static final int habitantProbability = 250;
+	private static final int plantProbability = 25;
+	private static final int predatorProbability = 5000;
 
 	// ---- class data ----
 
@@ -25,7 +26,6 @@ public class World extends Frame {
 	private int refresh;
 
 	private BaseCell[][] newCells;
-	private ArrayList<BaseCell> cells = new ArrayList<>();
 
 	private Random randomGenerator;
 
@@ -46,7 +46,7 @@ public class World extends Frame {
 		this.randomGenerator = new Random();
 
 		// initialize the cells
-		int random = this.randomGenerator.nextInt(100);
+		int random = this.randomGenerator.nextInt(plantProbability);
 
 		newCells = new BaseCell[xCellCount][yCellCount];
 
@@ -58,7 +58,7 @@ public class World extends Frame {
 					this.newCells[x][y] = new BaseCell(0);
 				}
 
-				random = this.randomGenerator.nextInt(100);
+				random = this.randomGenerator.nextInt(plantProbability);
 			}
 		}
 	}
@@ -184,6 +184,59 @@ public class World extends Frame {
 				}
 			}
 		}
+		
+		// handle Predator
+		for (int x = 0; x < this.xCellCount; x++) {
+			for (int y = 0; y < this.yCellCount; y++) {
+				if (newCells[x][y].hasPredator()) {
+					int[] target = checkSurroundingForAnimal(x, y, newCells[x][y].getPredatorRadius()); 
+					if (target[0] != -1) {
+						newCells[x][y].feedPredator(newCells[target[0]][target[1]].getHabitantEnergy(target[2]));
+						newCells[target[0]][target[1]].removeHabitant(target[2]);
+					}
+					
+					switch (newCells[x][y].getPredatorAction()) {
+					case 0:
+						newCells[x][y].removePredator();
+						break;
+					case 1:
+						int randX = randomGenerator.nextInt(xCellCount);
+						int randY = randomGenerator.nextInt(yCellCount);
+						newCells[randX][randY].addPredator(new Predator());
+						break;
+					case 32:
+						newCells[scaleX(x+2)][scaleY(y)].addPredator(
+								newCells[scaleX(x)][scaleY(y)].movePredator());
+						break;
+					case 33:
+						newCells[scaleX(x-2)][scaleY(y)].addPredator(
+								newCells[scaleX(x)][scaleY(y)].movePredator());
+						break;
+					case 34:
+						newCells[scaleX(x)][scaleY(y-2)].addPredator(
+								newCells[scaleX(x)][scaleY(y)].movePredator());
+						break;
+					case 35:
+						newCells[scaleX(x)][scaleY(y+2)].addPredator(
+								newCells[scaleX(x)][scaleY(y)].movePredator());
+						break;
+					}
+				}
+			}
+		}
+		
+		if (rounds == 150) {
+			int random = this.randomGenerator.nextInt(predatorProbability);
+			for (int x = 0; x < xCellCount; x++) {
+				for (int y = 0; y < yCellCount; y++) {
+					if (random == 0) {
+						newCells[x][y].addPredator(new Predator());
+					}
+
+					random = this.randomGenerator.nextInt(predatorProbability);
+				}
+			}
+		}
 
 		if (rounds % refresh == 0) {
 			System.out.println("Rounds: " + this.rounds);
@@ -262,67 +315,11 @@ public class World extends Frame {
 
 		return result;
 	}
-
-	private int[] getSurrounding(int i) {
-		int[] result = new int[9];
-
-		int[] currentIndex = calcCellCoordinatesFromIndex(i);
-
-		int counter = 0;
-		for (int x = currentIndex[0] - 1; x <= currentIndex[0] + 1; x++) {
-			for (int y = currentIndex[1] - 1; y <= currentIndex[1] + 1; y++) {
-
-				int index = calcIndexFromCoordinates((x + xCellCount)
-						% xCellCount, (y + yCellCount) % yCellCount);
-
-				boolean isSurrounding = true;
-				if (index != i) {
-					isSurrounding = false;
-				}
-				result[counter] = cells.get(index)
-						.transferEnergy(isSurrounding);
-				counter++;
-			}
-		}
-
-		for (int x = currentIndex[0] - 1; x <= currentIndex[0] + 1; x++) {
-			for (int y = currentIndex[1] - 1; y <= currentIndex[1] + 1; y++) {
-
-				int index = calcIndexFromCoordinates((x + xCellCount)
-						% xCellCount, (y + yCellCount) % yCellCount);
-
-				boolean isSurrounding = true;
-				if (index != i) {
-					isSurrounding = false;
-				}
-				result[counter] = cells.get(index)
-						.transferEnergy(isSurrounding);
-				counter++;
-			}
-		}
-
-		return result;
-	}
-
-	private int calcIndexFromCoordinates(int x, int y) {
-		return y * xCellCount + x;
-	}
-
+	
 	private void printCell(Graphics2D g, int[] status, int x, int y) {
 		float[] hsb = Color.RGBtoHSB(status[0], status[1], status[2], null);
 		g.setColor(Color.getHSBColor(hsb[0], hsb[1], hsb[2]));
 		g.fillRect(x, y, this.cellSize, this.cellSize);
-	}
-
-	private int calcCellIndexFromPx(int x, int y) {
-		return (y / (this.cellSize + 1)) * xCellCount + x / (this.cellSize + 1);
-	}
-
-	private int[] calcCellCoordinatesFromIndex(int index) {
-		int xIndex = index % xCellCount;
-		int yIndex = index / yCellCount;
-
-		return new int[] { xIndex, yIndex };
 	}
 
 	private int scaleX(int x) {
@@ -333,5 +330,32 @@ public class World extends Frame {
 	private int scaleY(int y) {
 
 		return (y + yCellCount) % yCellCount;
+	}
+
+	private int[] checkSurroundingForAnimal(int idxX, int idxY, int radius) {
+		
+		int targetCellX = -1, targetCellY = -1, targetNumber = -1;
+		int maxEnergy = Integer.MIN_VALUE;
+
+		for (int x = idxX - radius; x <= idxX + radius; x++) {
+			for (int y = idxY - radius; y <= idxY + radius; y++) {
+				int numberOfHabitants = newCells[scaleX(x + xCellCount)][scaleY(y + yCellCount)].hasHabitant();
+				
+				for (int i = 0; i < numberOfHabitants; i++) {
+					int habitantEnergy = newCells[scaleX(x + xCellCount)][scaleY(y + yCellCount)].getHabitantEnergy(i); 
+					if (habitantEnergy > maxEnergy) {
+						targetCellX = scaleX(x + xCellCount);
+						targetCellY = scaleY(y + yCellCount);
+						targetNumber = i;
+					}
+				}
+			}
+		}
+		
+		if (targetCellX != -1) {
+			return new int[] {targetCellX, targetCellY, targetNumber};
+		} else {
+			return new int[] { -1, -1, -1 };
+		}
 	}
 }
