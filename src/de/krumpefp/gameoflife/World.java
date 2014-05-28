@@ -1,3 +1,20 @@
+/* 
+ * Copyright 2014 Filip Krumpe
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
 package de.krumpefp.gameoflife;
 
 import java.awt.Color;
@@ -8,6 +25,9 @@ import java.util.Random;
 
 public class World extends Frame {
 
+	// ---- class constants ----
+	private static final long serialVersionUID = 1L;
+	
 	// ---- class constants ----
 	private static final int xSpread = 3;
 	private static final int ySpread = 3;
@@ -89,7 +109,7 @@ public class World extends Frame {
 				case 0:
 					// plant will die and sow new cells
 					newCells[x][y].erasePlant();
-					for (int j = 0; j < this.seedFactor; j++) {
+					for (int j = 0; j < World.seedFactor; j++) {
 						this.newCells[scaleX(x - xSpread
 								+ this.randomGenerator.nextInt(1 + 2 * xSpread))][scaleY(y
 								- ySpread
@@ -171,8 +191,8 @@ public class World extends Frame {
 			}
 		}
 
-		if (rounds == this.habitantStart) {
-			int random = this.randomGenerator.nextInt(this.habitantProbability);
+		if (rounds == World.habitantStart) {
+			int random = this.randomGenerator.nextInt(World.habitantProbability);
 
 			for (int x = 0; x < xCellCount; x++) {
 				for (int y = 0; y < yCellCount; y++) {
@@ -180,7 +200,7 @@ public class World extends Frame {
 						this.newCells[x][y].addHabitant(new Animal());
 					}
 
-					random = this.randomGenerator.nextInt(this.habitantProbability);
+					random = this.randomGenerator.nextInt(World.habitantProbability);
 				}
 			}
 		}
